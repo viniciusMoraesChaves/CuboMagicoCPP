@@ -1,6 +1,6 @@
 # CuboMagicoCPP
 
-Interface inicial em C++/Qt para visualizar e manipular um cubo magico em 2D.
+Interface em C++/Qt para visualizar, manipular e resolver um cubo magico 2x2 em 2D.
 
 ## Requisitos
 
@@ -33,7 +33,9 @@ ctest --test-dir build --output-on-failure
 src/
 ├── core/
 │   ├── Cube.hpp
-│   └── Cube.cpp
+│   ├── Cube.cpp
+│   ├── DepthFirstSearch.hpp
+│   └── DepthFirstSearch.cpp
 ├── ui/
 │   ├── CubeWidget.hpp
 │   ├── CubeWidget.cpp
@@ -44,7 +46,8 @@ src/
 
 ## Estado atual
 
-- `core/Cube` guarda o estado do cubo e aplica movimentos basicos.
+- `core/Cube` guarda o estado 2x2 do cubo, aplica movimentos basicos e inversos, serializa estados e avalia se o cubo esta resolvido.
+- `core/DepthFirstSearch` implementa busca em profundidade limitada iterativa, retornando passos, sucesso e estados visitados.
 - `ui/CubeWidget` desenha as seis faces em uma rede 2D.
-- `ui/MainWindow` cria a janela principal com botoes `U`, `D`, `F`, `B`, `L`, `R` e `Reset`.
-- `tests/CubeCoreTests.cpp` valida que cada movimento basico aplicado quatro vezes volta ao estado inicial.
+- `ui/MainWindow` permite jogar com movimentos `U`, `D`, `F`, `B`, `L`, `R` e inversos, reiniciar, embaralhar e resolver por profundidade.
+- `tests/CubeCoreTests.cpp` valida movimentos, inversos, estado final e solucao de um embaralhamento curto pela busca.
