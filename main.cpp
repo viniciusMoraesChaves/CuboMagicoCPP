@@ -1,19 +1,31 @@
 #include <iostream>
 #include "Cubo.hpp"
 #include "profundidade.hpp"
+#include <random>
 
 int main() {
+    std::vector<std::string> possibleMoves = {"R", "R'", "U", "U'", "F", "F'"};
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    std::uniform_int_distribution<> dis(0, possibleMoves.size() - 1);
+
     std::cout << "--- TESTANDO BUSCA EM PROFUNDIDADE (IDDFS) ---\n\n";
 
     // 1. Cria o cubo resolvido
     Cubo c;
 
     // 2. Embaralha com 3 movimentos conhecidos: R, U, F'
-    std::cout << "Embaralhando o cubo com: R -> U -> F'\n";
-    c = c.aplicarMovimento("R");
-    c = c.aplicarMovimento("U");
-    c = c.aplicarMovimento("F'");
-
+    int quantidadeMovimentos = 10;
+    std::cout << "Embaralhando o cubo com " << quantidadeMovimentos << " movimentos aleatorios: ";
+    
+    for (int i = 0; i < quantidadeMovimentos; ++i) {
+        int random_index = dis(gen);
+        std::string movimentoSorteado = possibleMoves[random_index];
+        
+        std::cout << movimentoSorteado << (i == quantidadeMovimentos - 1 ? "" : " -> ");
+        c = c.aplicarMovimento(movimentoSorteado);
+    }
     std::cout << "Esta resolvido agora? " << (c.estaResolvido() ? "Sim" : "Nao") << "\n\n";
 
     // 3. Executa a sua IA
