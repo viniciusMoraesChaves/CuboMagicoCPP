@@ -1,6 +1,7 @@
 #include <iostream>
 #include "Cubo.hpp"
 #include "profundidade.hpp"
+#include "largura.hpp"
 #include <random>
 
 int main() {
@@ -33,9 +34,12 @@ int main() {
     BuscaProfundidade solver;
     ResultadoBusca res = solver.resolver(c, 6);
 
-    // 4. Exibe o resultado
+    BuscaPorLargura solverLargura;
+    ResultadoBuscaLargura resLargura = solverLargura.resolver(c, 6);
+
+    // 4. Exibe o resultado da profundidade
     if (res.sucesso) {
-        std::cout << "\n[SUCESSO] Cubo resolvido!\n";
+        std::cout << "\n[SUCESSO] | [Profundidade] !\n";
         std::cout << "Passos encontrados: ";
         for (const auto& passo : res.passos) {
             std::cout << passo << " ";
@@ -45,6 +49,19 @@ int main() {
     } else {
         std::cout << "\n[FALHA] Nao encontrou solucao dentro do limite.\n";
     }
+    // 5. Exibe o resultado da largura
+    if(resLargura.sucesso) {
+        std::cout << "\n[SUCESSO] | [Largura] !\n";
+        std::cout << "Passos encontrados: ";
+        for (const auto& passo : resLargura.passos) {
+            std::cout << passo << " ";
+        }
+        std::cout << "\nTotal de movimentos: " << resLargura.passos.size() << "\n";
+        std::cout << "Estados visitados pela IA: " << resLargura.estadosVisitados << "\n";
+    } else {
+        std::cout << "\n[FALHA] Nao encontrou solucao [Largura].\n";
+    }
+
 
     return 0;
 }
