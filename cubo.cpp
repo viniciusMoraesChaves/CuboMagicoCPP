@@ -1,4 +1,4 @@
-#include "Cubo.hpp"
+#include "cubo.hpp"
 
 // Índices das faces
 enum { U = 0, D = 1, F = 2, B = 3, L = 4, R = 5 };

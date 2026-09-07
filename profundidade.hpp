@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <stack>
-#include "Cubo.hpp"
+#include "cubo.hpp"
 
 struct ResultadoBusca {
     bool sucesso = false;

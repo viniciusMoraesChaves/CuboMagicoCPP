@@ -1,7 +1,8 @@
 #include <iostream>
-#include "Cubo.hpp"
+#include "cubo.hpp"
 #include "profundidade.hpp"
 #include "largura.hpp"
+#include "astar.hpp"
 #include <random>
 
 int main() {
@@ -11,23 +12,23 @@ int main() {
 
     std::uniform_int_distribution<> dis(0, possibleMoves.size() - 1);
 
-    std::cout << "--- TESTANDO BUSCA EM PROFUNDIDADE (IDDFS) ---\n\n";
+    std::cout << "--- TESTANDO BUSCAS DO CUBO 2x2 ---\n\n";
 
     // 1. Cria o cubo resolvido
     Cubo c;
 
-    // 2. Embaralha com 3 movimentos conhecidos: R, U, F'
-    int quantidadeMovimentos = 10;
+    // 2. Embaralha com movimentos aleatorios dentro do limite usado pelas buscas
+    int quantidadeMovimentos = 6;
     std::cout << "Embaralhando o cubo com " << quantidadeMovimentos << " movimentos aleatorios: ";
-    
+
     for (int i = 0; i < quantidadeMovimentos; ++i) {
         int random_index = dis(gen);
         std::string movimentoSorteado = possibleMoves[random_index];
-        
+
         std::cout << movimentoSorteado << (i == quantidadeMovimentos - 1 ? "" : " -> ");
         c = c.aplicarMovimento(movimentoSorteado);
     }
-    std::cout << "Esta resolvido agora? " << (c.estaResolvido() ? "Sim" : "Nao") << "\n\n";
+    std::cout << "\nEsta resolvido agora? " << (c.estaResolvido() ? "Sim" : "Nao") << "\n\n";
 
     // 3. Executa a sua IA
     std::cout << "Iniciando a busca...\n";
@@ -36,6 +37,9 @@ int main() {
 
     BuscaPorLargura solverLargura;
     ResultadoBuscaLargura resLargura = solverLargura.resolver(c, 6);
+
+    BuscaAEstrela solverAEstrela;
+    ResultadoBuscaAEstrela resAEstrela = solverAEstrela.resolver(c, 6);
 
     // 4. Exibe o resultado da profundidade
     if (res.sucesso) {
@@ -62,6 +66,18 @@ int main() {
         std::cout << "\n[FALHA] Nao encontrou solucao [Largura].\n";
     }
 
+    // 6. Exibe o resultado da A*
+    if(resAEstrela.sucesso) {
+        std::cout << "\n[SUCESSO] | [A*] !\n";
+        std::cout << "Passos encontrados: ";
+        for (const auto& passo : resAEstrela.passos) {
+            std::cout << passo << " ";
+        }
+        std::cout << "\nTotal de movimentos: " << resAEstrela.passos.size() << "\n";
+        std::cout << "Estados visitados pela IA: " << resAEstrela.estadosVisitados << "\n";
+    } else {
+        std::cout << "\n[FALHA] Nao encontrou solucao [A*].\n";
+    }
 
     return 0;
 }

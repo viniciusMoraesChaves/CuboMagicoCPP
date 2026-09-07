@@ -4,7 +4,7 @@
 #include <vector>
 #include <string>
 #include <queue> //fila da busca em largura
-#include "Cubo.hpp"
+#include "cubo.hpp"
 
 struct ResultadoBuscaLargura{
     bool sucesso = false;
@@ -31,4 +31,4 @@ public:
     ResultadoBuscaLargura resolver(Cubo cuboInicial, int limiteMaximo = 10);
 };
 
-#endif 
+#endif
