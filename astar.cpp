@@ -1,4 +1,4 @@
-#include "a_estrela.hpp"
+#include "astar.hpp"
 
 #include <queue>
 #include <unordered_map>
