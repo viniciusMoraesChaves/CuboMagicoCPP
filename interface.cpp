@@ -293,13 +293,26 @@ bool ehInverso(const std::string& a, const std::string& b) {
            (a == "R'" && b == "R") || (a == "F" && b == "F'") || (a == "F'" && b == "F");
 }
 
+void confirmarSeed(InterfaceEstado& e) {
+    if (!e.seedEditando) return;
+    e.seedEditando = false;
+    if (!e.seedBuffer.empty()) {
+        try {
+            e.seed = (unsigned int)std::stoul(e.seedBuffer);
+        } catch (...) {
+        }
+    }
+    std::cout << "[UI] Seed: " << e.seed << std::endl;
+}
+
 void fazerEmbaralhar(InterfaceEstado& e, Cubo& cubo) {
-    static std::mt19937 rng{std::random_device{}()};
+    // Engine recriado a cada chamada: mesma seed => mesma sequencia => mesmo cubo.
+    std::mt19937 rng{e.seed};
     static const std::vector<std::string> movs = {"U", "U'", "R", "R'", "F", "F'"};
     std::uniform_int_distribution<int> dist(0, 5);
     cubo = Cubo();
     std::string ant;
-    std::cout << "[UI] Embaralhando: ";
+    std::cout << "[UI] Embaralhando (seed " << e.seed << "): ";
     for (int i = 0; i < 6; ++i) {
         std::string m;
         do {
@@ -315,7 +328,7 @@ void fazerEmbaralhar(InterfaceEstado& e, Cubo& cubo) {
     e.estadosVisitados = 0;
     e.ultimoMovimento = "---";
     e.cuboResolvidoFlag = false;
-    e.mensagemStatus = "Cubo embaralhado. Clique RESOLVER.";
+    e.mensagemStatus = "Seed " + std::to_string(e.seed) + ". Clique RESOLVER.";
 }
 
 void fazerResolver(InterfaceEstado& e, Cubo& cubo) {
@@ -389,6 +402,7 @@ void fazerPasso(InterfaceEstado& e, Cubo& cubo) {
 
 void fazerReset(InterfaceEstado& e, Cubo& cubo) {
     std::string alg = e.algoritmoSelecionado;
+    unsigned int s = e.seed;  // seed preservada p/ repetir o teste
     SDL_Window* w = e.janela;
     SDL_Renderer* r = e.renderer;
     int lw = e.larguraJanela, lh = e.alturaJanela;
@@ -402,6 +416,7 @@ void fazerReset(InterfaceEstado& e, Cubo& cubo) {
     e.mouseY = my;
     e.inicializada = true;
     e.algoritmoSelecionado = alg;
+    e.seed = s;
     e.cuboResolvidoFlag = true;
     cubo = Cubo();
     layoutWidgets(e);
@@ -423,6 +438,11 @@ void layoutWidgets(InterfaceEstado& e) {
     e.btnResolver = {730, 174, 206, 50, "RESOLVER", "[R]"};
     e.btnPasso = {730, 232, 206, 50, "PASSO", "[SPC]"};
     e.btnReset = {730, 290, 206, 50, "RESET", "[BKSP]"};
+    // Esquerda, card SEED (12,510,230,86): caixa + [-][+][DADO]
+    e.btnSeedBox = {24, 536, 100, 32, "", ""};
+    e.btnSeedMenos = {128, 536, 30, 32, "-", ""};
+    e.btnSeedMais = {162, 536, 30, 32, "+", ""};
+    e.btnSeedDado = {196, 536, 34, 32, "DADO", ""};
 }
 
 std::string pillTexto(const InterfaceEstado& e, const Cubo& cubo) {
@@ -495,6 +515,26 @@ void interface_processarEventos(InterfaceEstado& estado, Cubo& cubo) {
                     estado.mensagemStatus = std::string("Algoritmo: ") + nomes[i];
                     std::cout << "[UI] Algoritmo: " << nomes[i] << std::endl;
                 }
+            // Seed: caixa inicia edicao; qualquer outro clique confirma.
+            if (dentro(x, y, estado.btnSeedBox)) {
+                estado.seedEditando = true;
+                estado.seedBuffer = std::to_string(estado.seed);
+            } else {
+                confirmarSeed(estado);
+            }
+            if (dentro(x, y, estado.btnSeedMenos)) {
+                estado.seedEditando = false;
+                estado.seed = estado.seed > 0 ? estado.seed - 1 : 0;
+                std::cout << "[UI] Seed: " << estado.seed << std::endl;
+            } else if (dentro(x, y, estado.btnSeedMais)) {
+                estado.seedEditando = false;
+                estado.seed++;
+                std::cout << "[UI] Seed: " << estado.seed << std::endl;
+            } else if (dentro(x, y, estado.btnSeedDado)) {
+                estado.seedEditando = false;
+                estado.seed = std::random_device{}();
+                std::cout << "[UI] Seed aleatoria: " << estado.seed << std::endl;
+            }
             if (dentro(x, y, estado.btnEmbaralhar))
                 fazerEmbaralhar(estado, cubo);
             else if (dentro(x, y, estado.btnResolver))
@@ -507,7 +547,20 @@ void interface_processarEventos(InterfaceEstado& estado, Cubo& cubo) {
             estado.mousePressionado = false;
         } else if (ev.type == SDL_KEYDOWN) {
             SDL_Keycode k = ev.key.keysym.sym;
-            if (k == SDLK_e)
+            if (estado.seedEditando) {
+                // Enquanto edita a seed, o teclado pertence a caixa (ignora atalhos).
+                if (k >= SDLK_0 && k <= SDLK_9) {
+                    if (estado.seedBuffer.size() < 10)
+                        estado.seedBuffer += (char)('0' + (k - SDLK_0));
+                } else if (k >= SDLK_KP_0 && k <= SDLK_KP_9) {
+                    if (estado.seedBuffer.size() < 10)
+                        estado.seedBuffer += (char)('0' + (k - SDLK_KP_0));
+                } else if (k == SDLK_BACKSPACE) {
+                    if (!estado.seedBuffer.empty()) estado.seedBuffer.pop_back();
+                } else if (k == SDLK_RETURN || k == SDLK_KP_ENTER || k == SDLK_ESCAPE) {
+                    confirmarSeed(estado);
+                }
+            } else if (k == SDLK_e)
                 fazerEmbaralhar(estado, cubo);
             else if (k == SDLK_r)
                 fazerResolver(estado, cubo);
@@ -527,8 +580,8 @@ void interface_processarEventos(InterfaceEstado& estado, Cubo& cubo) {
 
 void interface_atualizar(InterfaceEstado& estado) {
     if (!estado.inicializada || !estado.janela) return;
-    std::string t = "Cubo 2x2 [" + estado.algoritmoSelecionado + "] " +
-                    std::to_string(estado.passoAtual) + "/" +
+    std::string t = "Cubo 2x2 [" + estado.algoritmoSelecionado + "] seed:" +
+                    std::to_string(estado.seed) + " " + std::to_string(estado.passoAtual) + "/" +
                     std::to_string(estado.caminhoResolucao.size()) + " ult:" + estado.ultimoMovimento;
     SDL_SetWindowTitle(estado.janela, t.c_str());
 }
@@ -634,6 +687,42 @@ void interface_desenhar(InterfaceEstado& estado, const Cubo& cubo) {
         y += 18;
         fillRounded(r, x, y, 202, 10, 5, {22, 25, 36, 255});
         if (tot > 0) fillRounded(r, x, y, (int)(202 * frac), 10, 5, GREEN);
+    }
+
+    // ---------- coluna esquerda: seed ----------
+    card(r, 12, 510, 230, 86, "SEED - MESMO INICIO P/ TESTAR");
+    {
+        // caixa editável (clique + digite, ENTER confirma)
+        const Botao& box = estado.btnSeedBox;
+        bool hovBox = dentro(estado.mouseX, estado.mouseY, box);
+        fillRounded(r, box.x, box.y, box.largura, box.altura, 8, {22, 25, 36, 255});
+        strokeRounded(r, box.x, box.y, box.largura, box.altura, 8,
+                      estado.seedEditando ? ACCENT : (hovBox ? MUTED : BORDER));
+        std::string val = estado.seedEditando ? estado.seedBuffer : std::to_string(estado.seed);
+        if (estado.seedEditando && (SDL_GetTicks() / 500) % 2 == 0) val += "_";
+        int esc = val.size() <= 6 ? 2 : 1;
+        int tw = textoLargura(val.empty() ? " " : val, esc);
+        int tx = box.x + std::max(8, (box.largura - tw) / 2);
+        texto(r, tx, box.y + (box.altura - 7 * esc) / 2, val, esc, TEXT);
+        // mini-botoes [-][+][DADO]
+        struct Mini {
+            const Botao* b;
+            const char* t;
+        };
+        Mini minis[3] = {{&estado.btnSeedMenos, "-"}, {&estado.btnSeedMais, "+"}, {&estado.btnSeedDado, "DADO"}};
+        for (auto& mn : minis) {
+            bool hov = dentro(estado.mouseX, estado.mouseY, *mn.b);
+            bool press = hov && estado.mousePressionado;
+            fillRounded(r, mn.b->x, mn.b->y, mn.b->largura, mn.b->altura, 7,
+                        press ? ACCENT : (hov ? PANEL2 : PANEL));
+            strokeRounded(r, mn.b->x, mn.b->y, mn.b->largura, mn.b->altura, 7,
+                          hov ? ACCENT : BORDER);
+            std::string t = mn.t;
+            int e2 = t.size() <= 1 ? 2 : 1;
+            textoCentro(r, mn.b->x + mn.b->largura / 2, mn.b->y + (mn.b->altura - 7 * e2) / 2, t,
+                        e2, press ? BG : TEXT);
+        }
+        texto(r, 26, 574, "MESMA SEED = MESMO CUBO", 1, MUTED);
     }
 
     // ---------- centro: cubo ----------

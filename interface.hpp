@@ -34,6 +34,15 @@ struct InterfaceEstado {
     std::string mensagemStatus = "Embaralhe o cubo para comecar.";
     bool cuboResolvidoFlag = true;
 
+    // Seed do embaralhamento: mesma seed => mesmo cubo inicial.
+    unsigned int seed = 42;
+    bool seedEditando = false;
+    std::string seedBuffer;
+    Botao btnSeedBox;
+    Botao btnSeedMenos;
+    Botao btnSeedMais;
+    Botao btnSeedDado;
+
     // Interação (preenchidos a cada frame)
     int mouseX = -1, mouseY = -1;
     bool mousePressionado = false;
