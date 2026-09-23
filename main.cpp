@@ -10,7 +10,7 @@ int main() {
     }
 
     InterfaceEstado estado;
-    if (!interface_inicializar(estado, 960, 640)) {
+    if (!interface_inicializar(estado, 960, 720)) {
         SDL_Quit();
         return 1;
     }
