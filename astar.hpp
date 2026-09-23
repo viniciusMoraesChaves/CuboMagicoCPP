@@ -1,20 +1,9 @@
 #ifndef A_ESTRELA_HPP
 #define A_ESTRELA_HPP
 
-#include "cubo.hpp"
+#include "busca_comum.hpp"
 
-#include <vector>
-#include <string>
-
-struct ResultadoBuscaAEstrela {
-
-    bool sucesso = false;
-
-    std::vector<std::string> passos;
-
-    int estadosVisitados = 0;
-
-};
+using ResultadoBuscaAEstrela = ResultadoBusca;
 
 class BuscaAEstrela {
 
