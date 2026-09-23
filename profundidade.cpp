@@ -1,68 +1,65 @@
 #include "profundidade.hpp"
-#include <algorithm>
+
+#include <stack>
+#include <unordered_map>
+#include <utility>
+
+namespace {
+
+class FronteiraProfundidade : public FronteiraBusca {
+public:
+    explicit FronteiraProfundidade(int limite) : limite(limite) {}
+
+    void limpar() override {
+        pilha = {};
+        menorProfundidade.clear();
+    }
+
+    void adicionar(NoBusca no) override { pilha.push(std::move(no)); }
+
+    NoBusca removerProximo() override {
+        NoBusca no = std::move(pilha.top());
+        pilha.pop();
+        return no;
+    }
+
+    bool vazia() const override { return pilha.empty(); }
+
+    bool aceitar(const NoBusca& no) override {
+        std::string chave = serializarCubo(no.estado);
+        auto encontrado = menorProfundidade.find(chave);
+
+        if (encontrado != menorProfundidade.end() && encontrado->second <= no.profundidade) {
+            return false;
+        }
+
+        menorProfundidade[chave] = no.profundidade;
+        return true;
+    }
+
+    bool podeExpandir(const NoBusca& no) const override { return no.profundidade < limite; }
+
+private:
+    int limite;
+    std::stack<NoBusca> pilha;
+    std::unordered_map<std::string, int> menorProfundidade;
+};
+
+}  // namespace
 
 ResultadoBusca BuscaProfundidade::resolver(Cubo cuboInicial, int limiteMaximo) {
-    ResultadoBusca resultado;
-    resultado.sucesso = false;
-    resultado.estadosVisitados = 0;
-
-    std::vector<std::string> movimentos;
-    movimentos.push_back("U");
-    movimentos.push_back("U'");
-    movimentos.push_back("R");
-    movimentos.push_back("R'");
-    movimentos.push_back("F");
-    movimentos.push_back("F'");
+    ResultadoBusca resultadoFinal;
 
     for (int limite = 0; limite <= limiteMaximo; ++limite) {
-        std::stack<No*> pilha;
+        FronteiraProfundidade fronteira(limite);
+        ResultadoBusca resultado = executarBusca(cuboInicial, fronteira);
+        resultadoFinal.estadosVisitados += resultado.estadosVisitados;
 
-        // 1. Adicionar estado na estrutura
-        No* inicial = new No(cuboInicial, nullptr, "", 0);
-        pilha.push(inicial);
-
-        // 2. Enquanto a estrutura nao estiver vazia:
-        while (!pilha.empty()) {
-            
-            // 3. Remover proximo estado da estrutura
-            No* atual = pilha.top();
-            pilha.pop();
-            resultado.estadosVisitados++;
-
-            // 4. Avaliar estado
-            if (atual->estado.estaResolvido()) {
-                resultado.sucesso = true;
-
-                No* temp = atual;
-                while (temp->pai != nullptr) {
-                    resultado.passos.push_back(temp->movimento);
-                    temp = temp->pai;
-                }
-                std::reverse(resultado.passos.begin(), resultado.passos.end());
-                return resultado;
-            }
-
-            // 5. Adicionar estados seguintes na estrutura
-            if (atual->profundidade < limite) {
-                for (size_t i = 0; i < movimentos.size(); ++i) {
-                    std::string m = movimentos[i];
-
-                    // Evita cancelamentos imediatos simples (U depois U', etc.)
-                    if (!atual->movimento.empty()) {
-                        if ((atual->movimento == "U" && m == "U'") || (atual->movimento == "U'" && m == "U") ||
-                            (atual->movimento == "R" && m == "R'") || (atual->movimento == "R'" && m == "R") ||
-                            (atual->movimento == "F" && m == "F'") || (atual->movimento == "F'" && m == "F")) {
-                            continue;
-                        }
-                    }
-
-                    Cubo proximo = atual->estado.aplicarMovimento(m);
-                    No* filho = new No(proximo, atual, m, atual->profundidade + 1);
-                    pilha.push(filho);
-                }
-            }
+        if (resultado.sucesso) {
+            resultado.estadosVisitados = resultadoFinal.estadosVisitados;
+            return resultado;
         }
     }
 
-    return resultado;
+    return resultadoFinal;
 }
