@@ -43,6 +43,9 @@ struct InterfaceEstado {
     Botao btnSeedMais;
     Botao btnSeedDado;
 
+    // Jogo manual: um botão por movimento.
+    Botao btnMov[6];  // U U' R R' F F'
+
     // Interação (preenchidos a cada frame)
     int mouseX = -1, mouseY = -1;
     bool mousePressionado = false;

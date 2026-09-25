@@ -400,6 +400,28 @@ void fazerPasso(InterfaceEstado& e, Cubo& cubo) {
     }
 }
 
+const char* MOVIMENTOS_MANUAIS[6] = {"U", "U'", "R", "R'", "F", "F'"};
+
+// Jogo manual: aplica o movimento e invalida qualquer solução calculada antes.
+void fazerMovimentoManual(InterfaceEstado& e, Cubo& cubo, const std::string& m) {
+    bool tinhaSolucao = !e.caminhoResolucao.empty();
+    cubo = cubo.aplicarMovimento(m);
+    e.ultimoMovimento = m;
+    e.ultimoPassoEm = SDL_GetTicks();
+    e.caminhoResolucao.clear();
+    e.passoAtual = 0;
+    e.estadosVisitados = 0;
+    e.cuboResolvidoFlag = cubo.estaResolvido();
+    if (cubo.estaResolvido()) {
+        e.mensagemStatus = "CUBO RESOLVIDO MANUALMENTE! Embaralhe p/ jogar.";
+        std::cout << "[UI] Manual " << m << " -> CUBO RESOLVIDO!" << std::endl;
+    } else {
+        e.mensagemStatus =
+            "Manual: " + m + (tinhaSolucao ? " (solucao descartada)." : ". RESOLVER p/ dica.");
+        std::cout << "[UI] Manual: " << m << std::endl;
+    }
+}
+
 void fazerReset(InterfaceEstado& e, Cubo& cubo) {
     std::string alg = e.algoritmoSelecionado;
     unsigned int s = e.seed;  // seed preservada p/ repetir o teste
@@ -435,7 +457,7 @@ void layoutWidgets(InterfaceEstado& e) {
     e.btnAlgoritmo[2].dica = "[3]";
     // Direita: acoes
     e.btnEmbaralhar = {730, 116, 206, 50, "EMBARALHAR", "[E]"};
-    e.btnResolver = {730, 174, 206, 50, "RESOLVER", "[R]"};
+    e.btnResolver = {730, 174, 206, 50, "RESOLVER", "[S]"};
     e.btnPasso = {730, 232, 206, 50, "PASSO", "[SPC]"};
     e.btnReset = {730, 290, 206, 50, "RESET", "[BKSP]"};
     // Esquerda, card SEED (12,510,230,86): caixa + [-][+][DADO]
@@ -443,6 +465,11 @@ void layoutWidgets(InterfaceEstado& e) {
     e.btnSeedMenos = {128, 536, 30, 32, "-", ""};
     e.btnSeedMais = {162, 536, 30, 32, "+", ""};
     e.btnSeedDado = {196, 536, 34, 32, "DADO", ""};
+    // Faixa inferior: jogo manual (6 botoes centralizados, janela 960 de largura)
+    const char* dicasMov[6] = {"[U]", "[SH+U]", "[R]", "[SH+R]", "[F]", "[SH+F]"};
+    for (int i = 0; i < 6; ++i) {
+        e.btnMov[i] = {95 + i * 130, 636, 120, 36, MOVIMENTOS_MANUAIS[i], dicasMov[i]};
+    }
 }
 
 std::string pillTexto(const InterfaceEstado& e, const Cubo& cubo) {
@@ -543,6 +570,9 @@ void interface_processarEventos(InterfaceEstado& estado, Cubo& cubo) {
                 fazerPasso(estado, cubo);
             else if (dentro(x, y, estado.btnReset))
                 fazerReset(estado, cubo);
+            for (int i = 0; i < 6; ++i)
+                if (dentro(x, y, estado.btnMov[i]))
+                    fazerMovimentoManual(estado, cubo, MOVIMENTOS_MANUAIS[i]);
         } else if (ev.type == SDL_MOUSEBUTTONUP && ev.button.button == SDL_BUTTON_LEFT) {
             estado.mousePressionado = false;
         } else if (ev.type == SDL_KEYDOWN) {
@@ -562,9 +592,16 @@ void interface_processarEventos(InterfaceEstado& estado, Cubo& cubo) {
                 }
             } else if (k == SDLK_e)
                 fazerEmbaralhar(estado, cubo);
-            else if (k == SDLK_r)
+            else if (k == SDLK_s)
                 fazerResolver(estado, cubo);
-            else if (k == SDLK_SPACE)
+            else if (k == SDLK_u || k == SDLK_r || k == SDLK_f) {
+                // Jogo manual pelo teclado: SHIFT = movimento linha (U').
+                bool linha = (ev.key.keysym.mod & KMOD_SHIFT) != 0;
+                std::string m;
+                m += (char)std::toupper((unsigned char)k);
+                if (linha) m += "'";
+                fazerMovimentoManual(estado, cubo, m);
+            } else if (k == SDLK_SPACE)
                 fazerPasso(estado, cubo);
             else if (k == SDLK_BACKSPACE || k == SDLK_DELETE)
                 fazerReset(estado, cubo);
@@ -808,10 +845,23 @@ void interface_desenhar(InterfaceEstado& estado, const Cubo& cubo) {
         strokeRounded(r, qx, qy, 18, 18, 5, BORDER);
         texto(r, qx + 23, qy + 3, NOME_COR[i], 1, MUTED);
     }
-    card(r, 718, 470, 230, 90, "COMO USAR");
+    card(r, 718, 470, 230, 100, "COMO USAR");
     texto(r, 732, 500, "1 EMBARALHAR [E]", 1, TEXT);
-    texto(r, 732, 516, "2 RESOLVER   [R]", 1, TEXT);
+    texto(r, 732, 516, "2 RESOLVER   [S]", 1, TEXT);
     texto(r, 732, 532, "3 PASSO      [ESPACO]", 1, TEXT);
+    texto(r, 732, 548, "4 JOGAR: U/R/F+SHIFT", 1, TEXT);
+
+    // ---------- faixa inferior: jogo manual ----------
+    card(r, 12, 604, 936, 76, "JOGAR MANUAL - CLIQUE OU TECLAS U/R/F (+SHIFT = LINHA)");
+    {
+        SDL_Color coresMov[6] = {STICKER[0], STICKER[0], STICKER[5],
+                                 STICKER[5], STICKER[2], STICKER[2]};
+        for (int i = 0; i < 6; ++i) {
+            const Botao& b = estado.btnMov[i];
+            botao(r, b, coresMov[i], false, dentro(estado.mouseX, estado.mouseY, b),
+                  estado.mousePressionado && dentro(estado.mouseX, estado.mouseY, b), false);
+        }
+    }
 
     // ---------- footer ----------
     fillRounded(r, 0, H - 36, W, 36, 0, {26, 29, 40, 255});
@@ -821,7 +871,7 @@ void interface_desenhar(InterfaceEstado& estado, const Cubo& cubo) {
         std::string st = estado.mensagemStatus;
         if (st.size() > 72) st = st.substr(0, 72);
         texto(r, 16, H - 26, st, 1, TEXT);
-        std::string dica = "[1/2/3] ALGORITMO   [E/R/SPC/BKSP] ACOES";
+        std::string dica = "[1/2/3] ALG  [E/S/SPC/BKSP] ACOES  [U/R/F]+SHIFT JOGAR";
         texto(r, W - textoLargura(dica, 1) - 16, H - 26, dica, 1, MUTED);
     }
 
